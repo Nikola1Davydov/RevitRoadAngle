@@ -1,0 +1,11 @@
+﻿<RevitAddIns>
+    <AddIn Type="Application">
+        <Name>RoadAngle</Name>
+        <Assembly>RoadAngle/RoadAngle.dll</Assembly>
+        <AddInId>A540118C-60DB-4EA0-A7D9-8A13B83913B4</AddInId>
+        <FullClassName>RoadAngle.Application</FullClassName>
+        <VendorId>Development</VendorId>
+        <VendorDescription></VendorDescription>
+        <VendorEmail></VendorEmail>
+    </AddIn>
+</RevitAddIns>
