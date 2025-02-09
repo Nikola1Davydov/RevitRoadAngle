@@ -4,9 +4,10 @@ namespace RoadAngle.Views
 {
     public sealed partial class RoadAngleView
     {
-        public RoadAngleView(RoadAngleViewModel viewModel)
+        public RoadAngleViewModel viewModel { get; set; }
+        public RoadAngleView(RoadAngleViewModel _viewModel)
         {
-            DataContext = viewModel;
+            this.viewModel = _viewModel;
             InitializeComponent();
         }
     }

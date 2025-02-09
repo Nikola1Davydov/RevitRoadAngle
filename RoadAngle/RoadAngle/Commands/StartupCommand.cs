@@ -1,6 +1,7 @@
 ﻿using Autodesk.Revit.Attributes;
 using Nice3point.Revit.Toolkit.External;
 using RoadAngle.Utils;
+using RoadAngle.ViewModels;
 using RoadAngle.Views;
 
 namespace RoadAngle.Commands
@@ -16,7 +17,9 @@ namespace RoadAngle.Commands
         {
             if (WindowController.Focus<RoadAngleView>()) return;
 
-            var view = Host.GetService<RoadAngleView>();
+            RoadAngleViewModel roadAngleViewModel = new RoadAngleViewModel();
+            RoadAngleView view = new RoadAngleView(roadAngleViewModel);
+
             WindowController.Show(view, UiApplication.MainWindowHandle);
         }
     }

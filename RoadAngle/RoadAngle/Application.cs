@@ -11,18 +11,16 @@ namespace RoadAngle
     {
         public override void OnStartup()
         {
-            Host.Start();
             CreateRibbon();
         }
 
         public override void OnShutdown()
         {
-            Host.Stop();
         }
 
         private void CreateRibbon()
         {
-            var panel = Application.CreatePanel("Commands", "RoadAngle");
+            var panel = Application.CreatePanel("Davydov_Topo", "RoadAngle");
 
             panel.AddPushButton<StartupCommand>("Execute")
                 .SetImage("/RoadAngle;component/Resources/Icons/RibbonIcon16.png")
