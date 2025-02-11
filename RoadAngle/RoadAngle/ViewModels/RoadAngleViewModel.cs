@@ -8,6 +8,7 @@ namespace RoadAngle.ViewModels
 {
     public partial class RoadAngleViewModel : ObservableObject
     {
+        #region params
         [ObservableProperty]
         private string _contextSelectionFilledRegion = string.Empty;
         [ObservableProperty]
@@ -22,22 +23,20 @@ namespace RoadAngle.ViewModels
         ExternalEventCreateVoid handler;
         ExternalEvent exEvent;
 
-
-        CreateVoidAndCutFloor createVoidAndCutFloor = new CreateVoidAndCutFloor();
+        RoadAngleModel roadAngleModel = new RoadAngleModel();
+        #endregion
 
         public RoadAngleViewModel()
         {
             handler = new ExternalEventCreateVoid();
             exEvent = ExternalEvent.Create(handler);
         }
-
-
         #region commands
 
         [RelayCommand]
         private void Start()
         {
-            handler.action = (UIApplication app) => createVoidAndCutFloor.CreateVoidAndCut(selectionFloor, selectionFilledRegion, selectionTopo);
+            handler.action = (UIApplication app) => roadAngleModel.Main(selectionFloor, selectionFilledRegion, selectionTopo);
             exEvent.Raise();
         }
         [RelayCommand]
