@@ -20,7 +20,7 @@ namespace RoadAngle.ViewModels
         private Element selectionFilledRegion;
         private Element selectionFloor;
 
-        ExternalEventCreateVoid handler;
+        ExternalEventActionHandler handler;
         ExternalEvent exEvent;
 
         RoadAngleModel roadAngleModel = new RoadAngleModel();
@@ -28,7 +28,7 @@ namespace RoadAngle.ViewModels
 
         public RoadAngleViewModel()
         {
-            handler = new ExternalEventCreateVoid();
+            handler = new ExternalEventActionHandler();
             exEvent = ExternalEvent.Create(handler);
         }
         #region commands
@@ -55,15 +55,23 @@ namespace RoadAngle.ViewModels
         {
             try
             {
-                selectionTopo = SelectionInModelUtils.PickElementInRevitModelElem(Context.ActiveUiDocument, BuiltInCategory.OST_Topography);
+#if REVIT2023
+                BuiltInCategory topoBuiltInCategory = BuiltInCategory.OST_Topography;
+#elif REVIT2024_OR_GREATER
+                BuiltInCategory topoBuiltInCategory = BuiltInCategory.OST_Toposolid;
+#endif
+                selectionTopo = SelectionInModelUtils.PickElementInRevitModelElem(Context.ActiveUiDocument, topoBuiltInCategory);
                 ContextSelectionTopo = selectionTopo.Id.ToString();
             }
-            catch (Exception)
+            catch (Autodesk.Revit.Exceptions.OperationCanceledException)
             {
-
-                throw;
+                // Benutzer hat die Auswahl abgebrochen, keine Aktion erforderlich
             }
-
+            catch (Exception ex)
+            {
+                // Loggen Sie die Ausnahme oder zeigen Sie eine Fehlermeldung an
+                TaskDialog.Show("Fehler", $"Ein Fehler ist aufgetreten: {ex.Message}");
+            }
         }
         [RelayCommand]
         private void SelectFilledRegion()
@@ -73,12 +81,15 @@ namespace RoadAngle.ViewModels
                 selectionFilledRegion = SelectionInModelUtils.PickElementInRevitModelElem(Context.ActiveUiDocument, BuiltInCategory.OST_DetailComponents);
                 ContextSelectionFilledRegion = selectionFilledRegion.Id.ToString();
             }
-            catch (Exception)
+            catch (Autodesk.Revit.Exceptions.OperationCanceledException)
             {
-
-                throw;
+                // Benutzer hat die Auswahl abgebrochen, keine Aktion erforderlich
             }
-
+            catch (Exception ex)
+            {
+                // Loggen Sie die Ausnahme oder zeigen Sie eine Fehlermeldung an
+                TaskDialog.Show("Fehler", $"Ein Fehler ist aufgetreten: {ex.Message}");
+            }
         }
         [RelayCommand]
         private void SelectFloor()
@@ -88,12 +99,16 @@ namespace RoadAngle.ViewModels
                 selectionFloor = SelectionInModelUtils.PickElementInRevitModelElem(Context.ActiveUiDocument, BuiltInCategory.OST_Floors);
                 ContextSelectionFloor = selectionFloor.Id.ToString();
             }
-            catch (Exception)
+            catch (Autodesk.Revit.Exceptions.OperationCanceledException)
             {
-
-                throw;
+                // Benutzer hat die Auswahl abgebrochen, keine Aktion erforderlich
+            }
+            catch (Exception ex)
+            {
+                // Loggen Sie die Ausnahme oder zeigen Sie eine Fehlermeldung an
+                TaskDialog.Show("Fehler", $"Ein Fehler ist aufgetreten: {ex.Message}");
             }
         }
-        #endregion
+#endregion
     }
 }

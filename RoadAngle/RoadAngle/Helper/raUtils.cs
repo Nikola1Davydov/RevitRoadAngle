@@ -1,13 +1,14 @@
-﻿using Autodesk.Revit.UI;
+﻿using Autodesk.Revit.ApplicationServices;
+using Autodesk.Revit.UI;
 
 namespace RoadAngle.Helper
 {
     public static class raUtils
     {
-        public static void createVoidFamily(double voidHeight, CurveArrArray profile, string familyTemplatePath, string newFamilyPath)
+        public static void createVoidFamily(Application app, double voidHeight, CurveArrArray profile, string familyTemplatePath, string newFamilyPath)
         {
             // Создаём новый документ семейства
-            Document familyDoc = Context.ActiveDocument.Application.NewFamilyDocument(familyTemplatePath);
+            Document familyDoc = app.NewFamilyDocument(familyTemplatePath);
             if (familyDoc == null)
             {
                 TaskDialog.Show("Ошибка", "Не удалось создать документ семейства.");
@@ -30,11 +31,24 @@ namespace RoadAngle.Helper
                     sketchPlane: sketchPlane,
                     end: voidHeight);
 
+                // Получаем внешний контур из профиля
+                CurveArray outerProfil = new CurveArray();
+                foreach (CurveArray item in profile)
+                {
+                    if (item.Size == 4)
+                    {
+                        outerProfil = item;
+                    }
+                }
+
+
                 // поскольку мы хотим вырезать геометрию в проекте,
                 // поэтому ставим параметр "семество разрешаеться вырезать геометрию войдом" в true
                 Family getFamily = familyDoc.OwnerFamily;
                 Parameter parameter = getFamily.get_Parameter(BuiltInParameter.FAMILY_ALLOW_CUT_WITH_VOIDS);
                 parameter.Set(1);
+
+
 
                 tx.Commit();
             }
@@ -57,12 +71,6 @@ namespace RoadAngle.Helper
             // Закрываем документ семейства
             familyDoc.Close(false);
             //TaskDialog.Show("Успех", "Новое void‑семейство создано в проект.");
-        }
-        public static double GetHeightTopo(Element element)
-        {
-            BoundingBoxXYZ bb = element.get_BoundingBox(null);
-            double height = bb.Max.Z - bb.Min.Z;
-            return height;
         }
         /// <summary>
         /// Преобразует `BoundingBoxXYZ` в `CurveLoop`
@@ -137,6 +145,45 @@ namespace RoadAngle.Helper
                 }
             }
             return loops;
+        }
+
+        public static List<XYZ> GetGridIntersectionPoints(Document doc)
+        {
+            List<XYZ> points = new List<XYZ>();
+            FilteredElementCollector collector = new FilteredElementCollector(doc);
+            IList<Element> getAllGrids = collector.OfClass(typeof(Grid)).WhereElementIsNotElementType().ToElements();
+            List<Curve> gridCurves = new List<Curve>();
+
+            foreach (Element grid in getAllGrids)
+            {
+                Grid gridElement = grid as Grid;
+                if (gridElement != null)
+                {
+                    Curve curve = gridElement.Curve;
+                    if (curve != null)
+                    {
+                        gridCurves.Add(curve);
+                    }
+                }
+            }
+
+            for (int i = 0; i < gridCurves.Count; i++)
+            {
+                for (int j = i + 1; j < gridCurves.Count; j++)
+                {
+                    IntersectionResultArray results;
+                    SetComparisonResult result = gridCurves[i].Intersect(gridCurves[j], out results);
+                    if (result == SetComparisonResult.Overlap && results != null)
+                    {
+                        foreach (IntersectionResult intersection in results)
+                        {
+                            points.Add(intersection.XYZPoint);
+                        }
+                    }
+                }
+            }
+
+            return points;
         }
     }
 }

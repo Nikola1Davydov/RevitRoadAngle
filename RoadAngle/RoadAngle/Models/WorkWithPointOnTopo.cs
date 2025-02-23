@@ -1,6 +1,9 @@
-﻿using Autodesk.Revit.DB.Architecture;
+﻿using Autodesk.Revit.DB;
+using Autodesk.Revit.DB.Architecture;
 using Autodesk.Revit.UI;
 using RoadAngle.Helper;
+using System.Diagnostics;
+using System.Reflection;
 
 namespace RoadAngle.Models
 {
@@ -21,29 +24,67 @@ namespace RoadAngle.Models
         }
         public void createPointsOnFloor()
         {
-            // 1. Получаем исходный контур void‑выреза
-            List<CurveLoop> innerLoops = raUtils.GetFilledRegionContours(filledRegion);
+            try
+            {
+                // 1. Получаем исходный контур void‑выреза
+                List<CurveLoop> innerLoops = raUtils.GetFilledRegionContours(filledRegion);
 
-            // 2. Вычисляем offset‑контур
-            CurveLoop offsetBoundary = OffsetCurveLoop(innerLoops.FirstOrDefault(), offsetDistance);
+                // 2. Вычисляем offset‑контур
+                CurveLoop offsetBoundary = OffsetCurveLoop(innerLoops.FirstOrDefault(), offsetDistance);
 
-            // 3. Разбиваем offset‑контур на точки
-            List<XYZ> boundaryPoints = SampleCurveLoop(offsetBoundary, sampleStep);
+                // 3. Разбиваем offset‑контур на точки
+                List<XYZ> boundaryPoints = SampleCurveLoop(offsetBoundary, sampleStep);
 
-            // 4. Для каждой точки определяем высоту на топографии
+                // 3.5 Добавляем точки где пересекается грид
+                List<XYZ> gridIntersectionPoints = raUtils.GetGridIntersectionPoints(Context.ActiveDocument);
+
+                List<XYZ> centralOfGridIntersectionPoints = GetCentralPoints(gridIntersectionPoints);
+
+                // 4. Для каждой точки определяем высоту на топографии
+#if REVIT2023
             for (int i = 0; i < boundaryPoints.Count; i++)
             {
-                // Получаем высоту из топографии для текущей точки (реализуйте функцию GetElevationAtPoint)
+                // Получаем высоту из топографии для текущей точки 
                 double elevation = GetElevationAtPoint(boundaryPoints[i], topo);
                 boundaryPoints[i] = new XYZ(boundaryPoints[i].X, boundaryPoints[i].Y, elevation);
             }
+#elif REVIT2024_OR_GREATER
+                using (Transaction tx = new Transaction(Context.ActiveDocument, "Создание 3D вида"))
+                {
+                    tx.Start();
+                    for (int i = 0; i < boundaryPoints.Count; i++)
+                    {
+                        // Получаем высоту из топографии для текущей точки 
+                        boundaryPoints[i] = GetElevationAtPoint(boundaryPoints[i], topo, Context.ActiveDocument);
+                    }
+                    for (int i = 0; i < gridIntersectionPoints.Count; i++)
+                    {
+                        // Получаем высоту из топографии для текущей точки 
+                        gridIntersectionPoints[i] = new XYZ(gridIntersectionPoints[i].X, gridIntersectionPoints[i].Y, 0);
+                    }
+                    for (int i = 0; i < centralOfGridIntersectionPoints.Count; i++)
+                    {
+                        // Получаем высоту из топографии для текущей точки 
+                        centralOfGridIntersectionPoints[i] = new XYZ(centralOfGridIntersectionPoints[i].X, centralOfGridIntersectionPoints[i].Y, -1);
+                    }
+                    tx.Commit();
+                }
 
-            // 5. Корректируем точки, чтобы уклон между соседними не превышал 2%
-            List<XYZ> smoothedPoints = SmoothPointsByMaxSlope(boundaryPoints, maxSlope: 0.02);
-            // Функция SmoothPointsByMaxSlope должна пройтись по точкам, сравнить разницу высот и скорректировать их
+#endif
+                // 5. Корректируем точки, чтобы уклон между соседними не превышал 2%
+                //List<XYZ> smoothedPoints = SmoothPointsByMaxSlope(boundaryPoints, maxSlope: 0.02);
+                // Функция SmoothPointsByMaxSlope должна пройтись по точкам, сравнить разницу высот и скорректировать их
 
-            // 6. Создаем эти точки на полу
-            ModifyFloorFootprint(floor, smoothedPoints);
+                // 6. Создаем эти точки на полу
+                ModifyFloorFootprint(floor, centralOfGridIntersectionPoints);
+                ModifyFloorFootprint(floor, gridIntersectionPoints);
+                ModifyFloorFootprint(floor, boundaryPoints);
+                
+            }
+            catch (Exception ex)
+            {
+                TaskDialog.Show("Error", ex.Message);
+            }
         }
         private CurveLoop OffsetCurveLoop(CurveLoop curves, double offsetDistance)
         {
@@ -120,8 +161,9 @@ namespace RoadAngle.Models
         //    }
         //    return closestZ;
         //}
-        private double GetElevationAtPoint(XYZ point, Element topo)
+        private XYZ GetElevationAtPoint(XYZ point, Element topo, Document doc)
         {
+#if REVIT2023
             TopographySurface topoSurface = topo as TopographySurface;
             if (topoSurface == null)
                 return point.Z; // если элемент не топография, возвращаем исходное значение
@@ -175,6 +217,46 @@ namespace RoadAngle.Models
             if (found)
                 elevation = highestZ;
             return elevation;
+#elif REVIT2024_OR_GREATER
+            ElementId topoElementId = topo.Id;
+            // Получаем все типы видов для 3D
+            FilteredElementCollector collector = new FilteredElementCollector(doc);
+            IList<ViewFamilyType> viewFamilyTypes = collector.OfClass(typeof(ViewFamilyType))
+                                                             .Cast<ViewFamilyType>()
+                                                             .Where(vft => vft.ViewFamily == ViewFamily.ThreeDimensional)
+                                                             .ToList();
+            ViewFamilyType view3DType = viewFamilyTypes.First();
+            View3D view3D = View3D.CreatePerspective(doc, view3DType.Id);
+            ElementCategoryFilter filter = new ElementCategoryFilter(topo.Category.BuiltInCategory);
+
+            // Создаем интерсектор для поиска пересечений с элементами топографии в заданном виде
+            ReferenceIntersector intersector = new ReferenceIntersector(filter, FindReferenceTarget.Face, view3D);
+            
+            // Задаем направление луча – вниз по оси Z
+            XYZ direction = new XYZ(0, 0, -1);
+            try
+            {
+                // Ищем ближайшее пересечение луча, исходящего из точки 'point' в направлении 'direction'
+                ReferenceWithContext refWithContext = intersector.FindNearest(point, direction);
+
+                if (refWithContext != null)
+                {
+                    Reference reference = refWithContext.GetReference();
+                    // Получаем глобальную точку пересечения
+                    XYZ intersectionPoint = reference.GlobalPoint;
+                    doc.Delete(view3D.Id);
+                    return intersectionPoint;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.Message);
+                throw;
+            }
+
+            doc.Delete(view3D.Id);
+            return null;
+#endif
         }
         /// <summary>
         /// Проверяет, принадлежит ли точка p (используя только координаты X и Y)
@@ -250,14 +332,21 @@ namespace RoadAngle.Models
                 {
                     tx.Start();
                     // Получаем SlabShapeEditor для данного пола.
+#if REVIT2023
                     SlabShapeEditor editor = f.SlabShapeEditor;
+#elif REVIT2023_OR_GREATER
+                    SlabShapeEditor editor = f.GetSlabShapeEditor();
+#endif
                     if (!editor.IsEnabled)
                     {
                         editor.Enable();
                     }
                     foreach (XYZ point in newPoints)
                     {
-                        editor.DrawPoint(point);
+                        if (point != null)
+                        {
+                            editor.DrawPoint(point);
+                        }
                     }
                     tx.Commit();
                 }
@@ -268,6 +357,68 @@ namespace RoadAngle.Models
                 throw;
             }
 
+        }
+        private List<XYZ> GetCentralPoints(List<XYZ> intersectionPoints)
+        {
+            List<XYZ> points = new List<XYZ>(intersectionPoints);
+            if (points == null || points.Count < 4)
+            {
+                throw new ArgumentException("The number of points must be at least 4.");
+            }
+
+            // Сортируем точки по координате X (слева направо)
+            points.Sort((p1, p2) => p1.X.CompareTo(p2.X));
+
+            List<XYZ> centralPoints = new List<XYZ>();
+            List<XYZ> result = new List<XYZ>();
+
+            if (centralPoints.Count == 4)
+            {
+                XYZ point = GetCentralPointOfFourPoints(points);
+                result.Add(point);
+            }
+            else
+            {
+                // Берем крайние 4 точки
+                centralPoints.AddRange(points.Take(4));
+
+                XYZ point = GetCentralPointOfFourPoints(centralPoints);
+                result.Add(point);
+
+                // Убираем две самые левые точки, пока не останется последние 4 точки
+                while (points.Count > 4)
+                {
+                    centralPoints.Clear();
+                    points.RemoveAt(0);
+                    points.RemoveAt(0);
+                    centralPoints.AddRange(points.Take(4));
+
+                    XYZ point1 = GetCentralPointOfFourPoints(centralPoints);
+                    result.Add(point1);
+                }
+            }
+
+            return result;
+        }
+        private XYZ GetCentralPointOfFourPoints(List<XYZ> points)
+        {
+            if (points == null || points.Count != 4)
+            {
+                throw new ArgumentException("The number of points must be 4.");
+            }
+
+            int numSquares = points.Count;
+
+            XYZ p1 = points[0];
+            XYZ p2 = points[1];
+            XYZ p3 = points[2];
+            XYZ p4 = points[3];
+
+            double totalX = (p1.X + p2.X + p3.X + p4.X) / 4;
+            double totalY = (p1.Y + p2.Y + p3.Y + p4.Y) / 4;
+            double totalZ = (p1.Z + p2.Z + p3.Z + p4.Z) / 4;
+
+            return new XYZ(totalX,  totalY, totalZ);
         }
     }
 }
