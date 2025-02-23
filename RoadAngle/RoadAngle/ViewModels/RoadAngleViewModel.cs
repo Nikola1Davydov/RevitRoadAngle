@@ -34,9 +34,15 @@ namespace RoadAngle.ViewModels
         #region commands
 
         [RelayCommand]
-        private void Start()
+        private void CreateVoid()
         {
-            handler.action = (UIApplication app) => roadAngleModel.Main(selectionFloor, selectionFilledRegion, selectionTopo);
+            handler.action = (UIApplication app) => roadAngleModel.CreateVoid(selectionFloor, selectionFilledRegion, selectionTopo);
+            exEvent.Raise();
+        }
+        [RelayCommand]
+        private void AddPointOnFloor()
+        {
+            handler.action = (UIApplication app) => roadAngleModel.AddPointOnFloor(selectionFloor, selectionFilledRegion, selectionTopo);
             exEvent.Raise();
         }
         [RelayCommand]
@@ -47,20 +53,46 @@ namespace RoadAngle.ViewModels
         [RelayCommand]
         private void SelectTopo()
         {
-            selectionTopo = SelectionInModelUtils.PickElementInRevitModelElem(Context.ActiveUiDocument, BuiltInCategory.OST_Topography);
-            ContextSelectionTopo = selectionTopo.Id.ToString();
+            try
+            {
+                selectionTopo = SelectionInModelUtils.PickElementInRevitModelElem(Context.ActiveUiDocument, BuiltInCategory.OST_Topography);
+                ContextSelectionTopo = selectionTopo.Id.ToString();
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+
         }
         [RelayCommand]
         private void SelectFilledRegion()
         {
-            selectionFilledRegion = SelectionInModelUtils.PickElementInRevitModelElem(Context.ActiveUiDocument, BuiltInCategory.OST_DetailComponents);
-            ContextSelectionFilledRegion = selectionFilledRegion.Id.ToString();
+            try
+            {
+                selectionFilledRegion = SelectionInModelUtils.PickElementInRevitModelElem(Context.ActiveUiDocument, BuiltInCategory.OST_DetailComponents);
+                ContextSelectionFilledRegion = selectionFilledRegion.Id.ToString();
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+
         }
         [RelayCommand]
         private void SelectFloor()
         {
-            selectionFloor = SelectionInModelUtils.PickElementInRevitModelElem(Context.ActiveUiDocument, BuiltInCategory.OST_Floors);
-            ContextSelectionFloor = selectionFloor.Id.ToString();
+            try
+            {
+                selectionFloor = SelectionInModelUtils.PickElementInRevitModelElem(Context.ActiveUiDocument, BuiltInCategory.OST_Floors);
+                ContextSelectionFloor = selectionFloor.Id.ToString();
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
         }
         #endregion
     }

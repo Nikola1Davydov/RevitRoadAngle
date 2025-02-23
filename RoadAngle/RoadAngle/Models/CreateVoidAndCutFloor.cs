@@ -1,6 +1,7 @@
 ﻿using Autodesk.Revit.UI;
 using System;
 using RoadAngle.Helper;
+using System.IO;
 
 namespace RoadAngle.Models
 {
@@ -8,9 +9,36 @@ namespace RoadAngle.Models
     {
         int outerLoopGrowNumber = 5;
         // шаблон для семейства берет от сюда
-        string familyTemplatePath = @"C:\ProgramData\Autodesk\RVT 2023\Family Templates\German\Allgemeines Modell.rft";
+#if REVIT2023
+        string familyTemplatePath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "Autodesk",
+            "RVT 2023",
+            "Family Templates",
+            "German",
+            "Allgemeines Modell.rft"
+        );
+#elif REVIT2024
+        string familyTemplatePath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "Autodesk",
+            "RVT 2024",
+            "Family Templates",
+            "German",
+            "Allgemeines Modell.rft"
+        );
+#elif REVIT2025
+        string familyTemplatePath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "Autodesk",
+            "RVT 2025",
+            "Family Templates",
+            "German",
+            "Allgemeines Modell.rft"
+        );
+#endif
         // Сохраняем семейство в файл (укажите нужный путь для сохранения)
-        string newFamilyPath = @"C:\Temp\NewVoidFamily.rfa";
+        string newFamilyPath = Path.Combine(Path.GetTempPath(), "NewVoidFamily.rfa");
         FamilyInstance cuttingInstance;
 
         /// <summary>
@@ -28,7 +56,7 @@ namespace RoadAngle.Models
                 return null;
             }
 
-            raUtils.createVoidFamily(voidHeight, profile, familyTemplatePath, newFamilyPath);
+            raUtils.createVoidFamily(voidHeight + 1, profile, familyTemplatePath, newFamilyPath);
             using (Transaction tx = new Transaction(Context.ActiveDocument, "Импорт файла"))
             {
                 tx.Start();
@@ -63,7 +91,7 @@ namespace RoadAngle.Models
                 tx.Start();
                 try
                 {
-                    InstanceVoidCutUtils.AddInstanceVoidCut(Context.ActiveDocument, floor,cuttingInstance);
+                    //InstanceVoidCutUtils.AddInstanceVoidCut(Context.ActiveDocument, floor,cuttingInstance);
                 }
                 catch (Exception ex)
                 {
@@ -74,15 +102,5 @@ namespace RoadAngle.Models
             }
             return cuttingInstance;
         }
-
-
-
-
-
-
-
-
-
-
     }
 }
