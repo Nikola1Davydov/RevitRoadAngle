@@ -2,10 +2,10 @@
 {
     public class RoadAngleModel
     {
-        public void CreateVoid(Element floor, Element filledRegion, Element topo)
+        public void CreateVoid(Element floor, Element filledRegion, Element topo, int outerLoopGrowNumber)
         {
             CreateVoidAndCutFloor createVoidAndCutFloor = new CreateVoidAndCutFloor();
-            FamilyInstance cuttingInstance = createVoidAndCutFloor.CreateVoidAndCut(floor, filledRegion, topo);
+            FamilyInstance cuttingInstance = createVoidAndCutFloor.CreateVoidAndCut(floor, filledRegion, topo, outerLoopGrowNumber);
         }
         public void AddPointOnFloor(Element floor, Element filledRegion, Element topo)
         {

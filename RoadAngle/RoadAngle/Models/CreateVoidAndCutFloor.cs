@@ -33,8 +33,10 @@ namespace RoadAngle.Models
         /// Создаёт Void-элемент по внешнему BoundingBox `FilledRegion`
         /// и использует контур `FilledRegion` для внутренней границы
         /// </summary>
-        public FamilyInstance CreateVoidAndCut(Element floor, Element filledRegion, Element topo)
+        public FamilyInstance CreateVoidAndCut(Element floor, Element filledRegion, Element topo, int outerLoopGrowNumber)
         {
+            this.outerLoopGrowNumber = outerLoopGrowNumber;
+
             BoundingBoxXYZ bb = topo.get_BoundingBox(null);
             double voidHeight = bb.Max.Z + 1 - bb.Min.Z;
 

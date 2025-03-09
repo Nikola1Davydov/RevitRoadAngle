@@ -6,7 +6,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:viewModel="clr-namespace:RoadAngle.ViewModels"
     Title="RoadAngle"
-    Width="400"
+    Width="500"
     Height="250"
     ResizeMode="NoResize"
     WindowStartupLocation="CenterScreen"
@@ -18,36 +18,48 @@
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition />
-            <RowDefinition />
-            <RowDefinition />
-            <RowDefinition />
             <RowDefinition Height="30" />
         </Grid.RowDefinitions>
-
-        <Button
-            Grid.Row="0"
-            d:Content="123456"
-            Command="{Binding SelectFilledRegionCommand}"
-            Content="{Binding ContextSelectionFilledRegion}"
-            ContentStringFormat="select filled region: {0}" />
-        <Button
-            Grid.Row="1"
-            d:Content="123456"
-            Command="{Binding SelectTopoCommand}"
-            Content="{Binding ContextSelectionTopo}"
-            ContentStringFormat="select topo: {0}" />
-        <Button
-            Grid.Row="2"
-            d:Content="123456"
-            Command="{Binding SelectFloorCommand}"
-            Content="{Binding ContextSelectionFloor}"
-            ContentStringFormat="select floor: {0}" />
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="30" />
+                <RowDefinition />
+                <RowDefinition />
+            </Grid.RowDefinitions>
+            <UniformGrid Grid.Row="0" Rows="1">
+                <Button
+                    Grid.Row="0"
+                    Grid.Column="0"
+                    d:Content="123456"
+                    Command="{Binding SelectFilledRegionCommand}"
+                    Content="{Binding ContextSelectionFilledRegion}"
+                    ContentStringFormat="select filled region: {0}" />
+                <Button
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    d:Content="123456"
+                    Command="{Binding SelectTopoCommand}"
+                    Content="{Binding ContextSelectionTopo}"
+                    ContentStringFormat="select topo: {0}" />
+                <Button
+                    Grid.Row="0"
+                    Grid.Column="2"
+                    d:Content="123456"
+                    Command="{Binding SelectFloorCommand}"
+                    Content="{Binding ContextSelectionFloor}"
+                    ContentStringFormat="select floor: {0}" />
+            </UniformGrid>
+            <StackPanel Grid.Row="1" VerticalAlignment="Center">
+                <TextBlock Text="Topo auschnitt abstand" />
+                <TextBox d:Text="5" Text="{Binding OuterLoopGrowNumber, UpdateSourceTrigger=PropertyChanged}" />
+            </StackPanel>
+        </Grid>
 
         <StackPanel
             Grid.Row="4"
             Grid.Column="1"
             HorizontalAlignment="Right"
-            VerticalAlignment="Center"
+            VerticalAlignment="Bottom"
             Orientation="Horizontal">
             <Button
                 Width="120"

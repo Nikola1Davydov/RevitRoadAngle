@@ -15,6 +15,8 @@ namespace RoadAngle.ViewModels
         private string _contextSelectionTopo = string.Empty;
         [ObservableProperty]
         private string _contextSelectionFloor = string.Empty;
+        [ObservableProperty]
+        private int _outerLoopGrowNumber = 5;
 
         private Element selectionTopo;
         private Element selectionFilledRegion;
@@ -36,7 +38,7 @@ namespace RoadAngle.ViewModels
         [RelayCommand]
         private void CreateVoid()
         {
-            handler.action = (UIApplication app) => roadAngleModel.CreateVoid(selectionFloor, selectionFilledRegion, selectionTopo);
+            handler.action = (UIApplication app) => roadAngleModel.CreateVoid(selectionFloor, selectionFilledRegion, selectionTopo, OuterLoopGrowNumber);
             exEvent.Raise();
         }
         [RelayCommand]

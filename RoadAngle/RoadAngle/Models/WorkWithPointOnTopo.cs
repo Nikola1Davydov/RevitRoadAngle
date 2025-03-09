@@ -363,7 +363,7 @@ namespace RoadAngle.Models
             List<XYZ> points = new List<XYZ>(intersectionPoints);
             if (points == null || points.Count < 4)
             {
-                throw new ArgumentException("The number of points must be at least 4.");
+                return points;
             }
 
             // Сортируем точки по координате X (слева направо)
